@@ -1,0 +1,36 @@
+FROM php:8.2-apache
+
+RUN apt-get update && \
+    apt-get install -y libzip-dev unzip sqlite3 libsqlite3-dev && \
+    docker-php-ext-install pdo pdo_sqlite
+
+# Enable mod_rewrite
+RUN a2enmod rewrite
+
+# Copy your Apache config file
+COPY ports.conf /etc/apache2/ports.conf
+COPY 000-default.conf /etc/apache2/sites-available/000-default.conf
+
+WORKDIR /var/www/html
+
+COPY . /var/www/html
+
+# Install Node.js and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
+# Install JS dependencies and build (for development, you can skip build)
+WORKDIR /var/www/html
+COPY package*.json ./
+RUN npm install
+
+# Copy the rest of your app
+COPY . /var/www/html
+
+EXPOSE 8080
+EXPOSE 5173
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
